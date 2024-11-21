@@ -1,5 +1,6 @@
 class Animal:
     #Properties of animals
+    pass
 
 
 
