@@ -23,21 +23,23 @@ def onAppStart(app):
     constructControls(app)
     constructBackground(app)
     
-    app.setMaxShapeCount(5000)
+    app.setMaxShapeCount(2000)
     app.colorAtPix = ()
     app.sineWave, app.sineDegrees = 0, 0
 
 def constructAnimals(app):
-    for i in range(numSalmonSlider.value):
+    if len(Salmon.getSalmonList()) < app.numSalmonSlider.value:
         Salmon(app)
+    elif len(Salmon.getSalmonList()) > app.numSalmonSlider.value:
+        Salmon.getSalmonList().pop()
    
 def constructBackground(app):
     app.landscapeImage = loadPilImageLocal("/Users/camdenjohnson/Desktop/Python workspace/landscape.png")
     app.landscapeImageRGB = app.landscapeImage.convert('RGB')
 
 def constructControls(app):
-    numSalmonSlider = Slider(50, 750, "Number of Salmon", 10)
-    Slider.listSliders[numSalmonSlider] = app.numSalmon
+    app.numSalmonSlider = Slider(50, 750, "Number of Salmon", 10)
+    Slider.listSliders[app.numSalmonSlider] = app.numSalmon
     
 class Slider:
     listSliders = dict()
@@ -69,8 +71,8 @@ class Slider:
                     slider.offset = Slider.length-1
                 elif circleX <= slider.leftX:
                     slider.offset = 1
-            slider.percent = slider.offset / Slider.length
-            slider.value = int(slider.maxValue * slider.percent)
+                slider.percent = slider.offset / Slider.length
+                slider.value = int(slider.maxValue * slider.percent)
             constructAnimals(app)
 
     def drawSlider(self):
