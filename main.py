@@ -3,6 +3,7 @@ from testFile import *
 import math
 from urllib.request import urlopen
 from PIL import Image
+import random
 
 def loadPilImageLocal(path):
     return Image.open(path)
@@ -18,45 +19,45 @@ def onAppStart(app):
     app.height = 840 #Mac screen height
     app.controlScreenHeight = 150
     app.displayXY  = (0, 0)
+    app.numSalmon = 0
     constructControls(app)
-    constructAnimals(app)
     constructBackground(app)
+    
     app.setMaxShapeCount(5000)
     app.colorAtPix = ()
     app.sineWave, app.sineDegrees = 0, 0
+
+def constructAnimals(app):
+    for i in range(numSalmonSlider.value):
+        Salmon(app)
    
 def constructBackground(app):
     app.landscapeImage = loadPilImageLocal("/Users/camdenjohnson/Desktop/Python workspace/landscape.png")
     app.landscapeImageRGB = app.landscapeImage.convert('RGB')
 
 def constructControls(app):
-    Button(1000, 600, 100, 100, "red", "Red")
-    Slider(100, 700, "Number of Fish")
-    Slider(250, 700, "Number of Poops")
-    Slider(400, 700, "Number of Fish")
-    Slider(650, 700, "Number of Poops")
-
-def constructAnimals(app):
-    Salmon(700, 520)
-    Salmon(500, 500)
+    numSalmonSlider = Slider(50, 750, "Number of Salmon", 10)
+    Slider.listSliders[numSalmonSlider] = app.numSalmon
     
 class Slider:
-    listSliders = []
+    listSliders = dict()
     radius = 10
     length = 100
-    def __init__(self, leftX, leftY, name):
-        Slider.listSliders.append(self)
+    def __init__(self, leftX, leftY, name, maxValue):
+        Slider.listSliders[self] = None
         self.leftX, self.leftY = leftX, leftY
         self.offset = 0
         self.percent = 0
+        self.maxValue = maxValue
         self.name = name
-   
+        self.value = 0
+
     @staticmethod
     def getSliders():
         return Slider.listSliders
     
     @staticmethod
-    def updateSliders(mouseX, mouseY):
+    def updateSlidersFromMouse(app, mouseX, mouseY):
         for slider in Slider.getSliders():
             circleX = slider.leftX + slider.offset
             circleY = slider.leftY
@@ -69,11 +70,13 @@ class Slider:
                 elif circleX <= slider.leftX:
                     slider.offset = 1
             slider.percent = slider.offset / Slider.length
-   
+            slider.value = int(slider.maxValue * slider.percent)
+            constructAnimals(app)
+
     def drawSlider(self):
         drawLine(self.leftX, self.leftY, self.leftX+Slider.length, self.leftY, fill = "black", lineWidth = 5)
         drawCircle(self.leftX+self.offset, self.leftY, Slider.radius, fill = "red")
-        drawLabel(self.name + str(self.percent), self.leftX, self.leftY+20, size = 16)
+        drawLabel(f"{self.name}: {self.value}", self.leftX, self.leftY+20, size = 16)
 
 class Button:
     listButtons = []
@@ -102,32 +105,38 @@ class Animal:
     pass
 
 class Salmon(Animal):
-
     salmonScale = 4
     salmonImageRightFull = loadPilImageLocal("/Users/camdenjohnson/Desktop/Python workspace/salmon.png")
     salmonWidth, salmonHeight = salmonImageRightFull.size
-    salmonImageRight = salmonImageRightFull.resize((salmonWidth//salmonScale, salmonHeight//salmonScale))
+    adjSalmonWidth, adjSalmonheight = salmonWidth//salmonScale, salmonHeight//salmonScale
+    salmonImageRight = salmonImageRightFull.resize((adjSalmonWidth, adjSalmonheight))
     salmonImageLeftFull = loadPilImageLocal("/Users/camdenjohnson/Desktop/Python workspace/salmonF.png")
-    salmonImageLeft = salmonImageLeftFull.resize((salmonWidth//salmonScale, salmonHeight//salmonScale))
+    salmonImageLeft = salmonImageLeftFull.resize((adjSalmonWidth, adjSalmonheight))
     salmonList = []
-    swimStepSizeX, swimStepSizeY = 2, 2
+    maxSalmon = 10
+    swimStepSizeX, swimStepSizeY = 2, 10
 
-    def __init__(self, x, y):
-        Salmon.salmonList.append(self)
-        self.leftX, self.leftY = x, y
+    def __init__(self, app):
         self.movingRight = True
+        while True:
+            self.leftX, self.leftY = random.randint(1, app.width), random.randint(1, app.height-app.controlScreenHeight)
+            try: 
+                self.isInWater(app)
+            except:
+                continue
+            if self.isInWater(app):
+                Salmon.salmonList.append(self)
+                return
         
     def isInWater(self, app):
-        colorTolerance = 5
+        colorTolerance = 2
         r, g, b = app.landscapeImageRGB.getpixel((self.leftX, self.leftY))
         r1, g1, b1 = 46, 109, 246 #This is the blue color that is being used in the testLandscape
         checkLeft = isSameColor(r, g, b, r1, g1, b1, colorTolerance)
-        r, g, b = app.landscapeImageRGB.getpixel((self.leftX + Salmon.salmonWidth, self.leftY))
+        r, g, b = app.landscapeImageRGB.getpixel((self.leftX + Salmon.adjSalmonWidth, self.leftY))
         checkRight = isSameColor(r, g, b, r1, g1, b1, colorTolerance)
-
-        if checkLeft and checkRight:
-            return True
-        return False
+        checkBottom = self.leftY + Salmon.adjSalmonheight <= app.height-app.controlScreenHeight
+        return checkLeft and checkRight and checkBottom
 
     def drawSalmon(self):
         if self.movingRight:
@@ -136,7 +145,7 @@ class Salmon(Animal):
             drawImage(CMUImage(Salmon.salmonImageLeft), self.leftX, self.leftY)
 
     def swimStep(self, app):
-        self.leftY += app.sineWave * Salmon.swimStepSizeX
+        self.leftY += random.randint(-1, 1)
         if self.movingRight:
             self.leftX += Salmon.swimStepSizeX
         else:
@@ -150,7 +159,7 @@ class Salmon(Animal):
     @staticmethod
     def getSalmonList():
         return Salmon.salmonList
-
+      
 def redrawAll(app):
     drawControls(app)
     drawImage("/Users/camdenjohnson/Desktop/Python workspace/landscape.png", 0, 0)
@@ -177,15 +186,14 @@ def drawControls(app):
 
 def onMouseMove(app, mouseX, mouseY):
     app.displayXY = (mouseX, mouseY) #Just a useful utlility to show location 
-    #im = Image.open('pond.jpg') # Can be many different formats.
-    #pix = im.load()
+    #In case the location is out of index
     try:
         app.colorAtPix = app.landscapeImageRGB.getpixel((mouseX, mouseY))  # Get the RGBA Value of the a pixel of an image
     except:
         pass
 
 def onMouseDrag(app, mouseX, mouseY):
-    Slider.updateSliders(mouseX, mouseY)
+    Slider.updateSlidersFromMouse(app, mouseX, mouseY)
 
 def onStep(app):
     app.sineDegrees +=1
