@@ -42,12 +42,14 @@ def onAppStart(app):
 ############################################################
 
 def constructAnimals(app):
-    Pollution(app)
-    if len(Salmon.getSalmonList()) < app.numSalmonSlider.value:
+    if len(Salmon.getList()) < app.numSalmonSlider.value:
         Salmon(app)
-    elif len(Salmon.getSalmonList()) > app.numSalmonSlider.value:
-        Salmon.getSalmonList().pop()
-
+    elif len(Salmon.getList()) > app.numSalmonSlider.value:
+        Salmon.getList().pop()
+    if len(Pollution.getList()) < app.numPollutionSlider.value:
+        Pollution(app)
+    elif len(Pollution.getList()) > app.numPollutionSlider.value:
+        Pollution.getList().pop()
 
    
 def constructBackground(app):
@@ -56,7 +58,9 @@ def constructBackground(app):
     app.landscapeImageRGB = app.landscapeImagePIL.convert('RGB')
 
 def constructControls(app):
+    app.exitButton = Button(app.width-25, 0, 25, 25, "red", "X")
     app.numSalmonSlider = Slider(50, 750, "Number of Salmon", 10)
+    app.numPollutionSlider = Slider(50, 800, "Number of Pollutors", 10)
     
 class Slider:
     listSliders = dict()
@@ -94,8 +98,8 @@ class Slider:
 
     def drawSlider(self):
         drawLine(self.leftX, self.leftY, self.leftX+Slider.length, self.leftY, fill = "black", lineWidth = 5)
-        drawCircle(self.leftX+self.offset, self.leftY, Slider.radius, fill = "red")
-        drawLabel(f"{self.name}: {self.value}", self.leftX, self.leftY+20, size = 16)
+        drawCircle(self.leftX+self.offset, self.leftY, Slider.radius, fill = "pink")
+        drawLabel(f"{self.name}: {self.value}", self.leftX+(Slider.length//2), self.leftY+20, size = 16)
 
 class Button:
     listButtons = []
@@ -124,6 +128,8 @@ class Compartment:
     compartmentsMap = dict()
 
 class Mover:
+    listMovers = []
+
     def isOnColor(self, app, r1, g1, b1, colorTolerance):
         r, g, b = app.landscapeImageRGB.getpixel((self.leftX, self.leftY))
         checkLeft = isSameColor(r, g, b, r1, g1, b1, colorTolerance)
@@ -135,6 +141,10 @@ class Mover:
     def isLegalLoc(self, app):
         r, g, b = self.legalColor
         return self.isOnColor(app, r, g, b, self.colorTolerance)
+    
+    @staticmethod
+    def getList():
+        return Mover.listMovers
 
 class Salmon(Mover):
     salmonScale = 4
@@ -156,6 +166,7 @@ class Salmon(Mover):
                 continue
             if self.isLegalLoc(app):
                 Salmon.salmonList.append(self)
+                Mover.listMovers.append(self)
                 return
 
     def drawSalmon(self):
@@ -177,7 +188,7 @@ class Salmon(Mover):
             self.movingRight = True
 
     @staticmethod
-    def getSalmonList():
+    def getList():
         return Salmon.salmonList
     
 class Pollution(Mover):
@@ -197,6 +208,7 @@ class Pollution(Mover):
                 continue
             if self.isLegalLoc(app):
                 Pollution.listPollution.append(self)
+                Mover.listMovers.append(self)
                 break
         self.isStatic = False
         self.durationTumble = 50 + random.randint(0, 10)
@@ -220,17 +232,21 @@ class Pollution(Mover):
             self.tumbleCounter += 1
         elif self.durationTumble == self.tumbleCounter:
             self.isStatic = True
-
+    @staticmethod
+    def getList():
+        return Pollution.listPollution
+    
 def game_redrawAll(app):
     drawControls(app)
     drawImage("/Users/camdenjohnson/Desktop/Python workspace/landscape.png", 0, 0)
 
-    for salmon in Salmon.getSalmonList():
+    for salmon in Salmon.getList():
         salmon.drawSalmon()
 
     for pollution in Pollution.listPollution:
         pollution.drawPollution(app)
 
+    app.exitButton.drawButton()
     drawUtils(app)
 
 def drawUtils(app):   
@@ -243,7 +259,7 @@ def drawUtils(app):
         drawRect(90, 30, 10, 10, fill = rgb(r, g, b))
 
 def drawControls(app):
-    drawRect(0, app.height-app.controlScreenHeight, app.width, app.controlScreenHeight, fill = "blue")
+    drawRect(0, app.height-app.controlScreenHeight, app.width, app.controlScreenHeight, fill = "lightBlue")
     for slider in Slider.getSliders():
         slider.drawSlider()
     for button in Button.getButtons():
@@ -261,10 +277,14 @@ def game_onMouseDrag(app, mouseX, mouseY):
     Slider.updateSlidersFromMouse(app, mouseX, mouseY)
 
 def game_onStep(app):
-    for salmon in Salmon.getSalmonList():
+    for salmon in Salmon.getList():
         salmon.actionStep(app)
     for pollution in Pollution.listPollution:
         pollution.actionStep(app)
+
+def game_onMousePress(app, mouseX, mouseY):
+    if app.exitButton.isInButton(mouseX, mouseY):
+        setActiveScreen("start")
         
 
 def distance(x1, y1, x2, y2):
@@ -283,7 +303,10 @@ def isSameColor(r, g, b, r1, g1, b1, colorTolerance):
 ############################################################
 
 def start_redrawAll(app):
+    drawLabel("Save the Salmon!", app.width/2, app.height/3, size = 55, font = "grenze", fill = "salmon", bold = True)
     app.enterCreativeButton.drawButton()
+    app.enterSurvivalButton.drawButton()
+
 def start_onScreenActivate(app):
     app.enterCreativeButton = Button(400, 400, 250, 100, "salmon", "Enter Creative Mode")
     app.enterSurvivalButton = Button(700, 400, 100, 100, "lightBlue", "Enter Survival Mode")
