@@ -51,17 +51,27 @@ def constructAnimals(app):
     elif len(Pollution.getList()) > app.numPollutionSlider.value:
         Pollution.getList().pop()
 
-   
 def constructBackground(app):
     app.landscapeImage, width, height = loadAndResizeCMUImageLocal("/Users/camdenjohnson/Desktop/Python workspace/landscape.png", 1)
     app.landscapeImagePIL = loadPILImageLocal("/Users/camdenjohnson/Desktop/Python workspace/landscape.png")
     app.landscapeImageRGB = app.landscapeImagePIL.convert('RGB')
+    constructCompartments()
+
+def constructCompartments():
+    compartments = ["Air", "Water", "Land", "Road"]
+    for compartment in compartments:
+        Compartment(compartment)
 
 def constructControls(app):
     app.exitButton = Button(app.width-25, 0, 25, 25, "red", "X")
     app.numSalmonSlider = Slider(50, 750, "Number of Salmon", 10)
     app.numPollutionSlider = Slider(50, 800, "Number of Pollutors", 10)
     
+class Compartment:
+    listCompartments = []
+    def __init__(self, name):
+        self.name = name
+
 class Slider:
     listSliders = dict()
     radius = 10
@@ -129,6 +139,10 @@ class Compartment:
 
 class Mover:
     listMovers = []
+    
+    def __init__(self):
+        self.leftX, self.leftY = 0, 0
+        self.width, self.height = 0, 0
 
     def isOnColor(self, app, r1, g1, b1, colorTolerance):
         r, g, b = app.landscapeImageRGB.getpixel((self.leftX, self.leftY))
@@ -145,6 +159,11 @@ class Mover:
     @staticmethod
     def getList():
         return Mover.listMovers
+    
+    def isInMover(self, mouseX, mouseY):
+        if self.leftX <= mouseX <= self.leftX + self.width and self.leftY <= mouseY <= self.leftY + self.height:
+            return True
+        return False
 
 class Salmon(Mover):
     salmonScale = 4
@@ -157,6 +176,7 @@ class Salmon(Mover):
     colorTolerance = 2
 
     def __init__(self, app):
+        super(). __init__()
         self.movingRight = True
         while True:
             self.leftX, self.leftY = random.randint(1, app.width), random.randint(1, app.height-app.controlScreenHeight)
@@ -196,10 +216,10 @@ class Pollution(Mover):
     legalColor = (0, 0, 0)
     colorTolerance = 2
 
-
     pollutionImage, width, height = loadAndResizeCMUImageLocal("/Users/camdenjohnson/Desktop/Python workspace/pollution.png", 4)
 
     def __init__(self, app):
+        super(). __init__()
         while True:
             self.leftX, self.leftY = random.randint(1, app.width), random.randint(1, app.height-app.controlScreenHeight)
             try: 
@@ -297,6 +317,34 @@ def isSameColor(r, g, b, r1, g1, b1, colorTolerance):
         abs(b1-b) <= colorTolerance:
         return True
     return False
+
+class InfoBox:
+    info = {"Salmon":"Blah, blah", "Water":"blah blah"}
+
+    def __init__(self, app, mouseX, mouseY):
+        self.width, self.height = 200, 200
+        self.leftX, self.leftY = mouseX, mouseY
+        self.drawInfoBox = True
+        #If its going off in both directions, flip up diagonally
+        if mouseX + self.width >= app.width and mouseY + self.height >= app.height:
+            self.leftX, self.leftY = self.leftX - self.width, self.leftY - self.height
+        #If its going off in the X direction
+        elif mouseX + self.width >= app.width:
+            self.leftX = self.leftX - self.width
+        #If it is going off in the Y direction
+        elif mouseY + self.height >= app.height:
+            self.leftY = self.leftY - self.height
+        self.targeObject = getTargetObject(app, mouseX, mouseY)
+        if self.targetObject == None:
+            self.drawInfoBox = False
+        self.label = self.info[self.targetObject]
+        
+
+def getTargetObject(app, mouseX, mouseY):
+    for mover in Mover.getList():
+        if mover.isInMover(mouseX, mouseY):
+            return mover
+    
 
 ############################################################
 # Start Screen
