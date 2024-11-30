@@ -1,28 +1,20 @@
 from cmu_graphics import *
-from testFile import *
+from slider import *
+from button import *
+from movers import *
 import math
 from urllib.request import urlopen
 from PIL import Image
 import random
+from imagepkg import *
 
-
-def loadAndResizeCMUImageLocal(path, resizeFactor):
-    PILImageFull = Image.open(path)
-    fullWidth, fullHeight = PILImageFull.size
-    width, height = fullWidth//resizeFactor, fullHeight//resizeFactor
-    image = PILImageFull.resize((width, height))
-    CMUImageReturn = CMUImage(image)
-    return CMUImageReturn, width, height 
-
-def loadPILImageLocal(path):
-    PILImageFull = Image.open(path)
-    return PILImageFull
-
-#This function was taken from the PIL demo through the 15-112 website:
-def loadPilImageURL(url):
-
-    # Loads a PIL image (not a CMU image!) from a url:
-    return Image.open(urlopen(url))
+#Camden Ray Johnson
+#AndrewID: camdenj, Email: camden@cmu.edu
+#The code for the PIL image loaders was adapted from the 15-112 website.
+#All photos that are utilized in this file were not created by myself, besides the landscape.png.
+#Citations for Photos:
+#Yellow Blob: https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.reddit.com%2Fr%2Fcartoons%2Fcomments%2F1dwg0tw%2Fneed_help_finding_this_cartoon_one_of_the%2F&psig=AOvVaw1Le-RwQSKPUak18rII6wEj&ust=1732634833434000&source=images&cd=vfe&opi=89978449&ved=0CBcQjhxqFwoTCJC83e_l94kDFQAAAAAdAAAAABAE
+#Salmon: https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.istockphoto.com%2Fillustrations%2Fsockeye-salmon&psig=AOvVaw2-p1E5cvVbwLuPGLygn5Zh&ust=1732634857917000&source=images&cd=vfe&opi=89978449&ved=0CBQQjRxqFwoTCPiw6fvl94kDFQAAAAAdAAAAABAE
 
 def onAppStart(app):
     app.width = 1440 #Mac screen width
@@ -30,6 +22,10 @@ def onAppStart(app):
     app.controlScreenHeight = 150
     app.displayXY  = (0, 0)
     app.numSalmon = 0
+    app.waterColor = (46, 109, 246)
+    app.roadColor = (0, 0, 0)
+    app.airColor = (255, 255, 255)
+    app.landColor = (50, 113, 65)
     constructControls(app)
     constructBackground(app)
     
@@ -55,12 +51,12 @@ def constructBackground(app):
     app.landscapeImage, width, height = loadAndResizeCMUImageLocal("/Users/camdenjohnson/Desktop/Python workspace/landscape.png", 1)
     app.landscapeImagePIL = loadPILImageLocal("/Users/camdenjohnson/Desktop/Python workspace/landscape.png")
     app.landscapeImageRGB = app.landscapeImagePIL.convert('RGB')
-    constructCompartments()
+    constructCompartments(app)
 
-def constructCompartments():
-    compartments = ["Air", "Water", "Land", "Road"]
+def constructCompartments(app):
+    compartments = {"Air":app.airColor, "Water":app.waterColor, "Land":app.landColor, "Road":app.roadColor}
     for compartment in compartments:
-        Compartment(compartment)
+        Compartment(compartment, compartments[compartment])
 
 def constructControls(app):
     app.exitButton = Button(app.width-25, 0, 25, 25, "red", "X")
@@ -69,196 +65,25 @@ def constructControls(app):
     
 class Compartment:
     listCompartments = []
-    def __init__(self, name):
+    def __init__(self, name, color):
         self.name = name
-
-class Slider:
-    listSliders = dict()
-    radius = 10
-    length = 100
-    def __init__(self, leftX, leftY, name, maxValue):
-        Slider.listSliders[self] = None
-        self.leftX, self.leftY = leftX, leftY
-        self.offset = 0
-        self.percent = 0
-        self.maxValue = maxValue
-        self.name = name
-        self.value = 0
-
-    @staticmethod
-    def getSliders():
-        return Slider.listSliders
-    
-    @staticmethod
-    def updateSlidersFromMouse(app, mouseX, mouseY):
-        for slider in Slider.getSliders():
-            circleX = slider.leftX + slider.offset
-            circleY = slider.leftY
-            sliderRight = slider.leftX + Slider.length
-            if distance(mouseX, mouseY, circleX, circleY) <= Slider.radius+5:
-                if (circleX<= slider.leftX + Slider.length and circleX >= slider.leftX):
-                    slider.offset = mouseX-slider.leftX
-                elif circleX >= sliderRight:
-                    slider.offset = Slider.length-1
-                elif circleX <= slider.leftX:
-                    slider.offset = 1
-                slider.percent = slider.offset / Slider.length
-                slider.value = int(slider.maxValue * slider.percent)
-            constructAnimals(app)
-
-    def drawSlider(self):
-        drawLine(self.leftX, self.leftY, self.leftX+Slider.length, self.leftY, fill = "black", lineWidth = 5)
-        drawCircle(self.leftX+self.offset, self.leftY, Slider.radius, fill = "pink")
-        drawLabel(f"{self.name}: {self.value}", self.leftX+(Slider.length//2), self.leftY+20, size = 16)
-
-class Button:
-    listButtons = []
-    def __init__(self, leftX, leftY, width, height, color, name):
-        Button.listButtons.append(self)
-        self.leftX, self.leftY = leftX, leftY
-        self.width, self.height = width, height
         self.color = color
-        self.name = name
+        self.listCompartments.append(self)
     
-    def drawButton(self):
-        drawRect(self.leftX, self.leftY, self.width, self.height, fill = self.color)
-        drawLabel(self.name, self.width/2 + self.leftX, self.height/2 + self.leftY, size = 16)
-
-    @staticmethod
-    def getButtons():
-        return Button.listButtons
-    
-    def isInButton(self, mouseX, mouseY):
-        if self.leftX <= mouseX <= self.leftX + self.width and \
-            self.leftY <= mouseY <= self.leftY + self.height:
-            return True
-        return False
-
-class Compartment:
-    compartmentsMap = dict()
-
-class Mover:
-    listMovers = []
-    
-    def __init__(self):
-        self.leftX, self.leftY = 0, 0
-        self.width, self.height = 0, 0
-
-    def isOnColor(self, app, r1, g1, b1, colorTolerance):
-        r, g, b = app.landscapeImageRGB.getpixel((self.leftX, self.leftY))
-        checkLeft = isSameColor(r, g, b, r1, g1, b1, colorTolerance)
-        r, g, b = app.landscapeImageRGB.getpixel((self.leftX + self.width, self.leftY))
-        checkRight = isSameColor(r, g, b, r1, g1, b1, colorTolerance)
-        checkBottom = self.leftY + self.height <= app.height-app.controlScreenHeight
-        return checkLeft and checkRight and checkBottom
-    
-    def isLegalLoc(self, app):
-        r, g, b = self.legalColor
-        return self.isOnColor(app, r, g, b, self.colorTolerance)
-    
-    @staticmethod
-    def getList():
-        return Mover.listMovers
-    
-    def isInMover(self, mouseX, mouseY):
-        if self.leftX <= mouseX <= self.leftX + self.width and self.leftY <= mouseY <= self.leftY + self.height:
-            return True
-        return False
-
-class Salmon(Mover):
-    salmonScale = 4
-    salmonImageRight, width, height = loadAndResizeCMUImageLocal("/Users/camdenjohnson/Desktop/Python workspace/salmon.png", salmonScale)
-    salmonImageLeft, width, height = loadAndResizeCMUImageLocal("/Users/camdenjohnson/Desktop/Python workspace/salmonF.png", salmonScale)
-    salmonList = []
-    maxSalmon = 10
-    swimStepSizeX, swimStepSizeY = 2, 10
-    legalColor = (46, 109, 246)
-    colorTolerance = 2
-
-    def __init__(self, app):
-        super(). __init__()
-        self.movingRight = True
-        while True:
-            self.leftX, self.leftY = random.randint(1, app.width), random.randint(1, app.height-app.controlScreenHeight)
-            try: 
-                self.isLegalLoc(app)
-            except:
-                continue
-            if self.isLegalLoc(app):
-                Salmon.salmonList.append(self)
-                Mover.listMovers.append(self)
-                return
-
-    def drawSalmon(self):
-        if self.movingRight:
-            drawImage(Salmon.salmonImageRight, self.leftX, self.leftY)
-        else:
-            drawImage(Salmon.salmonImageLeft, self.leftX, self.leftY)
-
-    def actionStep(self, app):
-        self.leftY += random.randint(-1, 1)
-        if self.movingRight:
-            self.leftX += Salmon.swimStepSizeX
-        else:
-            self.leftX -= Salmon.swimStepSizeX
-
-        if not self.isLegalLoc(app) and self.movingRight:
-            self.movingRight = False
-        elif not self.isLegalLoc(app) and not self.movingRight:
-            self.movingRight = True
+    def isInCompartment(self, mouseX, mouseY, app):
+        colorTolerance = 2
+        r,g,b = getMouseColor(mouseX, mouseY)
+        r1, g1, b1 = self.color
+        return isSameColor(r, g, b, r1, g1, b1, colorTolerance)
 
     @staticmethod
     def getList():
-        return Salmon.salmonList
-    
-class Pollution(Mover):
-    listPollution = []
-    legalColor = (0, 0, 0)
-    colorTolerance = 2
-
-    pollutionImage, width, height = loadAndResizeCMUImageLocal("/Users/camdenjohnson/Desktop/Python workspace/pollution.png", 4)
-
-    def __init__(self, app):
-        super(). __init__()
-        while True:
-            self.leftX, self.leftY = random.randint(1, app.width), random.randint(1, app.height-app.controlScreenHeight)
-            try: 
-                self.isLegalLoc(app)
-            except:
-                continue
-            if self.isLegalLoc(app):
-                Pollution.listPollution.append(self)
-                Mover.listMovers.append(self)
-                break
-        self.isStatic = False
-        self.durationTumble = 50 + random.randint(0, 10)
-        self.tumbleCounter = 0
-        self.rotation = 0
-        self.rotationStep = int(random.randint(-5, 5))
-
-    def __repr__(self):
-        return "I am a pollution"
-    def drawPollution(self, app):
-        drawImage(self.pollutionImage, self.leftX, self.leftY)
-
-    def tubmbleDownStep(self, app):
-        self.rotation += self.rotationStep
-        self.leftX += random.randint(-1, 10)
-        self.leftY += random.randint(-1, 15)
-    
-    def actionStep(self, app):
-        if not self.isStatic and self.tumbleCounter < self.durationTumble:
-            self.tubmbleDownStep(app)
-            self.tumbleCounter += 1
-        elif self.durationTumble == self.tumbleCounter:
-            self.isStatic = True
-    @staticmethod
-    def getList():
-        return Pollution.listPollution
+        return Compartment.listCompartments
     
 def game_redrawAll(app):
     drawControls(app)
     drawImage("/Users/camdenjohnson/Desktop/Python workspace/landscape.png", 0, 0)
+    
 
     for salmon in Salmon.getList():
         salmon.drawSalmon()
@@ -268,6 +93,9 @@ def game_redrawAll(app):
 
     app.exitButton.drawButton()
     drawUtils(app)
+    if not InfoBox.activeInfoBox == None:
+        
+        InfoBox.activeInfoBox.drawInfoBox()
 
 def drawUtils(app):   
     drawRect(0, 0, 100, 40, fill = "white")
@@ -286,6 +114,8 @@ def drawControls(app):
         button.drawButton()
 
 def game_onMouseMove(app, mouseX, mouseY):
+    generateInfoBox(app, mouseX, mouseY)
+
     app.displayXY = (mouseX, mouseY) #Just a useful utlility to show location 
     #In case the location is out of index
     try:
@@ -295,6 +125,7 @@ def game_onMouseMove(app, mouseX, mouseY):
 
 def game_onMouseDrag(app, mouseX, mouseY):
     Slider.updateSlidersFromMouse(app, mouseX, mouseY)
+    constructAnimals(app)
 
 def game_onStep(app):
     for salmon in Salmon.getList():
@@ -306,7 +137,6 @@ def game_onMousePress(app, mouseX, mouseY):
     if app.exitButton.isInButton(mouseX, mouseY):
         setActiveScreen("start")
         
-
 def distance(x1, y1, x2, y2):
 
     return ((x2 - x1)**2 + (y2 - y1)**2)**0.5
@@ -318,13 +148,30 @@ def isSameColor(r, g, b, r1, g1, b1, colorTolerance):
         return True
     return False
 
+def isOnColor(self, app, r1, g1, b1, colorTolerance):
+        r, g, b = app.landscapeImageRGB.getpixel((self.leftX, self.leftY))
+        checkLeft = isSameColor(r, g, b, r1, g1, b1, colorTolerance)
+        r, g, b = app.landscapeImageRGB.getpixel((self.leftX + self.width, self.leftY))
+        checkRight = isSameColor(r, g, b, r1, g1, b1, colorTolerance)
+        checkBottom = self.leftY + self.height <= app.height-app.controlScreenHeight
+        return checkLeft and checkRight and checkBottom
+    
+def getMouseColor(mouseX, mouseY, app):
+    try:
+        r, g, b = app.landscapeImageRGB.getpixel((mouseX, mouseY))
+    except:
+        return None
+    return r, g, b
+
 class InfoBox:
     info = {"Salmon":"Blah, blah", "Water":"blah blah"}
-
-    def __init__(self, app, mouseX, mouseY):
+    activeInfoBox = None
+    def __init__(self, app, mouseX, mouseY, name):
         self.width, self.height = 200, 200
         self.leftX, self.leftY = mouseX, mouseY
         self.drawInfoBox = True
+        self.name = name
+        InfoBox.activeInfoBox = self
         #If its going off in both directions, flip up diagonally
         if mouseX + self.width >= app.width and mouseY + self.height >= app.height:
             self.leftX, self.leftY = self.leftX - self.width, self.leftY - self.height
@@ -338,13 +185,24 @@ class InfoBox:
         if self.targetObject == None:
             self.drawInfoBox = False
         self.label = self.info[self.targetObject]
+    def drawInfoBox(self):
+        if self.drawInfoBox:
+            drawRect(self.leftX, self.leftY, self.width, self.height, fill = "red")
+            drawLabel(self.name, self.width/2+self.leftX, self.height/2+self.leftY)
         
-
 def getTargetObject(app, mouseX, mouseY):
+    print(Mover.getList())
     for mover in Mover.getList():
+        print(mover, "testing")
+        print(mover.isInMover(mouseX, mouseY))
         if mover.isInMover(mouseX, mouseY):
             return mover
     
+def generateInfoBox(app, mouseX, mouseY):
+    targetObject = getTargetObject(app, mouseX, mouseY)
+    if targetObject != None:
+        infoBox = InfoBox(mouseX, mouseY, str(targetObject))
+
 
 ############################################################
 # Start Screen
@@ -367,7 +225,3 @@ def main():
     cmu_graphics.runAppWithScreens(initialScreen = "start")
 
 main()
-
-
-
-
