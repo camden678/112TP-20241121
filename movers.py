@@ -1,10 +1,6 @@
-import math
-from urllib.request import urlopen
-from PIL import Image
-import random
 from imagepkg import *
 from cmu_graphics import *
-
+import random
 
 class Mover:
     listMovers = []

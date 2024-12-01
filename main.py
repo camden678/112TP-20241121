@@ -1,12 +1,14 @@
+#Imports Utils
 from cmu_graphics import *
+from imagepkg import *
+from urllib.request import urlopen
+from PIL import Image
+
+#Imports other classes
 from slider import *
 from button import *
 from movers import *
-import math
-from urllib.request import urlopen
-from PIL import Image
-import random
-from imagepkg import *
+
 
 #Camden Ray Johnson
 #AndrewID: camdenj, Email: camden@cmu.edu
@@ -83,7 +85,6 @@ class Compartment:
 def game_redrawAll(app):
     drawControls(app)
     drawImage("/Users/camdenjohnson/Desktop/Python workspace/landscape.png", 0, 0)
-    
 
     for salmon in Salmon.getList():
         salmon.drawSalmon()

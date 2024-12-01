@@ -1,8 +1,7 @@
-import math
 from urllib.request import urlopen
-from PIL import Image
-import random
 from cmu_graphics import *
+from PIL import Image
+
 
 
 def loadAndResizeCMUImageLocal(path, resizeFactor):
