@@ -22,3 +22,13 @@ def loadPILImageLocal(path):
 def loadPilImageURL(url):
     # Loads a PIL image (not a CMU image!) from a url:
     return Image.open(urlopen(url))
+
+def drawMultiLineString(string, cx, cy, fontSize, alignLoc, color):
+    lines = string.splitlines()
+    numLines = len(lines)
+    dy = (0.5 * fontSize)
+    startY = cy - (dy*(numLines-1))
+    drawY, drawX = startY, cx
+    for line in lines:
+        drawLabel(line.strip(), drawX, drawY, size = fontSize, align = alignLoc, fill = color)
+        drawY += 2 * dy

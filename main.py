@@ -1,12 +1,11 @@
 #Imports Utils
 from cmu_graphics import *
-from imagepkg import *
+from utils import *
 from urllib.request import urlopen
 from PIL import Image
 
 #Imports other classes
-from slider import *
-from button import *
+from controls import *
 from movers import *
 
 
@@ -28,9 +27,7 @@ def onAppStart(app):
     app.roadColor = (0, 0, 0)
     app.airColor = (255, 255, 255)
     app.landColor = (50, 113, 65)
-    constructControls(app)
     constructBackground(app)
-    
     app.setMaxShapeCount(2000)
     app.colorAtPix = ()
     app.sineWave, app.sineDegrees = 0, 0
@@ -39,15 +36,9 @@ def onAppStart(app):
 # Game Screen
 ############################################################
 
-def constructAnimals(app):
-    if len(Salmon.getList()) < app.numSalmonSlider.value:
-        Salmon(app)
-    elif len(Salmon.getList()) > app.numSalmonSlider.value:
-        Salmon.getList().pop()
-    if len(Pollution.getList()) < app.numPollutionSlider.value:
-        Pollution(app)
-    elif len(Pollution.getList()) > app.numPollutionSlider.value:
-        Pollution.getList().pop()
+def game_onScreenActivate(app):
+    app.isInfoMode = True
+    constructGameControls(app)
 
 def constructBackground(app):
     app.landscapeImage, width, height = loadAndResizeCMUImageLocal("/Users/camdenjohnson/Desktop/Python workspace/landscape.png", 1)
@@ -59,11 +50,6 @@ def constructCompartments(app):
     compartments = {"Air":app.airColor, "Water":app.waterColor, "Land":app.landColor, "Road":app.roadColor}
     for compartment in compartments:
         Compartment(compartment, compartments[compartment])
-
-def constructControls(app):
-    app.exitButton = Button(app.width-25, 0, 25, 25, "red", "X")
-    app.numSalmonSlider = Slider(50, 750, "Number of Salmon", 10)
-    app.numPollutionSlider = Slider(50, 800, "Number of Pollutors", 10)
     
 class Compartment:
     listCompartments = []
@@ -94,13 +80,12 @@ def game_redrawAll(app):
 
     app.exitButton.drawButton()
     drawUtils(app)
-    if not InfoBox.activeInfoBox == None:
-        
+
+    if InfoBox.activeInfoBox != None and InfoBox.activeInfoBox.drawInfoBoxBool:
         InfoBox.activeInfoBox.drawInfoBox()
 
 def drawUtils(app):   
     drawRect(0, 0, 100, 40, fill = "white")
-
     drawLabel(str(app.displayXY), 40, 10)
     drawLabel(str(app.colorAtPix), 40, 30)
     if app.colorAtPix != ():
@@ -115,8 +100,8 @@ def drawControls(app):
         button.drawButton()
 
 def game_onMouseMove(app, mouseX, mouseY):
-    generateInfoBox(app, mouseX, mouseY)
-
+    if app.isInfoMode:
+        generateInfoBox(app, mouseX, mouseY)
     app.displayXY = (mouseX, mouseY) #Just a useful utlility to show location 
     #In case the location is out of index
     try:
@@ -125,8 +110,19 @@ def game_onMouseMove(app, mouseX, mouseY):
         pass
 
 def game_onMouseDrag(app, mouseX, mouseY):
-    Slider.updateSlidersFromMouse(app, mouseX, mouseY)
-    constructAnimals(app)
+    if not app.isInfoMode:
+        for mover in Mover.listMovers:
+            if mover.isInMover(mouseX, mouseY):
+                mover.isStatic = True
+                mover.leftX, mover.leftY = mouseX, mouseY
+    
+    for slider in Slider.listSliders:
+        if slider.isInSlider(mouseX, mouseY):
+            slider.updateSliderFromMouse(mouseX)
+            constructAnimals(app)
+
+def game_onMouseRelease(app, mouseX, mouseY):
+    
 
 def game_onStep(app):
     for salmon in Salmon.getList():
@@ -135,11 +131,10 @@ def game_onStep(app):
         pollution.actionStep(app)
 
 def game_onMousePress(app, mouseX, mouseY):
-    if app.exitButton.isInButton(mouseX, mouseY):
-        setActiveScreen("start")
+    updateButtons(app, mouseX, mouseY)
+    
         
 def distance(x1, y1, x2, y2):
-
     return ((x2 - x1)**2 + (y2 - y1)**2)**0.5
 
 def isSameColor(r, g, b, r1, g1, b1, colorTolerance):
@@ -164,14 +159,14 @@ def getMouseColor(mouseX, mouseY, app):
         return None
     return r, g, b
 
+
 class InfoBox:
-    info = {"Salmon":"Blah, blah", "Water":"blah blah"}
     activeInfoBox = None
     def __init__(self, app, mouseX, mouseY, name):
         self.width, self.height = 200, 200
         self.leftX, self.leftY = mouseX, mouseY
-        self.drawInfoBox = True
-        self.name = name
+        self.drawInfoBoxBool = True
+
         InfoBox.activeInfoBox = self
         #If its going off in both directions, flip up diagonally
         if mouseX + self.width >= app.width and mouseY + self.height >= app.height:
@@ -182,29 +177,32 @@ class InfoBox:
         #If it is going off in the Y direction
         elif mouseY + self.height >= app.height:
             self.leftY = self.leftY - self.height
-        self.targeObject = getTargetObject(app, mouseX, mouseY)
+        self.targetObject = getTargetObject(app, mouseX, mouseY)
         if self.targetObject == None:
-            self.drawInfoBox = False
-        self.label = self.info[self.targetObject]
+            self.drawInfoBoxBool = False
+        self.name = name
+
     def drawInfoBox(self):
-        if self.drawInfoBox:
-            drawRect(self.leftX, self.leftY, self.width, self.height, fill = "red")
-            drawLabel(self.name, self.width/2+self.leftX, self.height/2+self.leftY)
+        if self.drawInfoBoxBool:
+            drawRect(self.leftX, self.leftY, self.width, self.height, fill = "salmon")
+            drawMultiLineString(self.name, self.leftX + 5, self.height/2+self.leftY, 16, "left", "black")
+
         
 def getTargetObject(app, mouseX, mouseY):
-    print(Mover.getList())
     for mover in Mover.getList():
-        print(mover, "testing")
-        print(mover.isInMover(mouseX, mouseY))
         if mover.isInMover(mouseX, mouseY):
             return mover
     
 def generateInfoBox(app, mouseX, mouseY):
     targetObject = getTargetObject(app, mouseX, mouseY)
     if targetObject != None:
-        infoBox = InfoBox(mouseX, mouseY, str(targetObject))
-
-
+        InfoBox(app, mouseX, mouseY, targetObject.getInfo())
+    elif targetObject == None and InfoBox.activeInfoBox == None:
+        InfoBox(app, 0, 0, "")
+        InfoBox.activeInfoBox.drawInfoBoxBool = False
+    else:
+        InfoBox.activeInfoBox.drawInfoBoxBool = False
+        
 ############################################################
 # Start Screen
 ############################################################

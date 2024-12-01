@@ -1,5 +1,8 @@
 from cmu_graphics import *
 
+#Camden Ray Johnson
+#AndrewID: camdenj, Email: camden@cmu.edu
+
 class Slider:
     listSliders = dict()
     radius = 10

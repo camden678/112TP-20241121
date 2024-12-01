@@ -2,13 +2,27 @@ from imagepkg import *
 from cmu_graphics import *
 import random
 
+#Camden Ray Johnson
+#AndrewID: camdenj, Email: camden@cmu.edu
+
+def constructAnimals(app):
+    if len(Salmon.getList()) < app.numSalmonSlider.value:
+        Salmon(app)
+    elif len(Salmon.getList()) > app.numSalmonSlider.value:
+        Salmon.getList().pop()
+    if len(Pollution.getList()) < app.numPollutionSlider.value:
+        Pollution(app)
+    elif len(Pollution.getList()) > app.numPollutionSlider.value:
+        Pollution.getList().pop()
+
 class Mover:
     listMovers = []
-
+    targetMover = None
     def __init__(self):
         self.leftX, self.leftY = 0, 0
-        self.width, self.height = 0, 0
+        #self.width, self.height = 0, 0
         self.name = ""
+        self.isStatic = False
 
     def isOnColor(self, app, r1, g1, b1, colorTolerance):
         r, g, b = app.landscapeImageRGB.getpixel((self.leftX, self.leftY))
@@ -34,7 +48,6 @@ class Mover:
             self.leftX + self.width >= mouseX and\
             self.leftY <= mouseY and\
             self.leftY + self.height >= mouseY:
-            print("ding")
             return True
         return False
     
@@ -70,6 +83,7 @@ class Pollution(Mover):
         drawImage(self.pollutionImage, self.leftX, self.leftY)
 
     def tubmbleDownStep(self, app):
+        
         self.rotation += self.rotationStep
         self.leftX += random.randint(-1, 10)
         self.leftY += random.randint(-1, 15)
@@ -83,6 +97,12 @@ class Pollution(Mover):
     @staticmethod
     def getList():
         return Pollution.listPollution
+    
+    @staticmethod
+    def getInfo():
+        return ''' This is information about pollution
+                    This is the second line.    
+                '''
     
 
 class Salmon(Mover):
@@ -108,6 +128,7 @@ class Salmon(Mover):
             if self.isLegalLoc(app):
                 Salmon.salmonList.append(self)
                 Mover.listMovers.append(self)
+                self.isStatic = False
                 return
 
     def drawSalmon(self):
@@ -117,22 +138,23 @@ class Salmon(Mover):
             drawImage(Salmon.salmonImageLeft, self.leftX, self.leftY)
 
     def actionStep(self, app):
-        self.leftY += random.randint(-1, 1)
-        if self.movingRight:
-            self.leftX += Salmon.swimStepSizeX
-        else:
-            self.leftX -= Salmon.swimStepSizeX
-
-        if not self.isLegalLoc(app) and self.movingRight:
-            self.movingRight = False
-        elif not self.isLegalLoc(app) and not self.movingRight:
-            self.movingRight = True
+        if not self.isStatic:
+            self.leftY += random.randint(-1, 1)
+            if self.movingRight:
+                self.leftX += Salmon.swimStepSizeX
+            else:
+                self.leftX -= Salmon.swimStepSizeX
+            if not self.isLegalLoc(app) and self.movingRight:
+                self.movingRight = False
+            elif not self.isLegalLoc(app) and not self.movingRight:
+                self.movingRight = True
 
     @staticmethod
     def getList():
         return Salmon.salmonList
-    
-
+    @staticmethod
+    def getInfo():
+        return '''I am a Salmon!\nSalmon are a key aspect\nof the ecosystem.\nEvery year they swim\nupstream to spawn.'''
 
 def isSameColor(r, g, b, r1, g1, b1, colorTolerance):
     if abs(r1-r) <= colorTolerance and \
@@ -140,3 +162,4 @@ def isSameColor(r, g, b, r1, g1, b1, colorTolerance):
         abs(b1-b) <= colorTolerance:
         return True
     return False
+

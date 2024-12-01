@@ -1,5 +1,8 @@
 from cmu_graphics import *
 
+#Camden Ray Johnson
+#AndrewID: camdenj, Email: camden@cmu.edu
+
 class Button:
     listButtons = []
     def __init__(self, leftX, leftY, width, height, color, name):
