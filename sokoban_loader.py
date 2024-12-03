@@ -8,13 +8,14 @@ from PIL import Image
 import pickle, os
 
 COLORS = {
-    'red':    (175,  71,  68),
+    'red': (175,  71,  68),
     'green': (113, 187, 82),
+    'tan': (238, 219, 131),
     'blue': (66, 81, 181),
     'violet': (149, 69, 183), 
     'cyan': (101, 186, 186),
-    'brown': (202, 167, 82), 
-    'tan': (66, 82, 183)
+    'brown': (146, 110, 47)
+    
     # finish this for green, blue, violet, cyan, brown, and tan
     # where brown is the brown in the brick, and tan is the tan
     # in the player's face.
@@ -34,29 +35,38 @@ def loadLevel(path):
     # first return a hardcoded level for testing purposes
     if path == None:
         return loadHardcodedLevel()
-    rows, cols = getRowsCols(path)
-    image = loadPILImageLocal(path, 1)
+    
+    picklePath = path + ".pickle"
+    try:
+        return readPickleFile(picklePath)
+    except FileNotFoundError:
+        rows, cols = getRowsCols(path)
+        image = loadPILImageLocal(path, 1)
 
-    width, height = image.width, image.height
-    dx, dy = width/cols, height/rows
+        width, height = image.width, image.height
+        dx, dy = width/cols, height/rows
 
-    resultList =  [["" for _ in range(cols)] for _ in range(rows)]
-    imageDict = dict()
+        resultList =  [["" for _ in range(cols)] for _ in range(rows)]
+        imageDict = dict()
 
-    left, top = 0, 0
-    bottom, right = dy, dx
-    print(image.width, image.height, rows, cols, dx, dy)
-    for i in range(rows-1):
-        for j in range(cols-1):
-            cellImage = image.crop((left+3, top+3, right-3, bottom-3))
-            cellContents = toCellContents(cellImage)
-            resultList[i][j] = cellContents
-            if cellContents not in imageDict:
-                imageDict[cellContents] = cellImage
-            left, right = left+dx, right+dx
-        top, bottom = top + dy, bottom + dy
-        left, right = 0, dx
-    return (resultList, imageDict)
+        left, top = 0, 0
+        bottom, right = dy, dx
+        #print(image.width, image.height, rows, cols, dx, dy)
+        for i in range(rows):
+            for j in range(cols):
+                #print("CELL: ", i, j)
+                #print(left, top, right, bottom)
+                cellImage = image.crop((left+3, top+3, right-3, bottom-3))
+                cellContents = toCellContents(cellImage)
+                resultList[i][j] = cellContents
+                if cellContents not in imageDict:
+                    imageDict[cellContents] = cellImage
+                left, right = left+dx, right+dx
+            top, bottom = top + dy, bottom + dy
+            left, right = 0, dx
+        result = (resultList, imageDict)
+        writePickleFile(picklePath, result) 
+        return result
 
 def toCellContents(inputCell):
     cell=inputCell.convert('RGB')
@@ -64,26 +74,32 @@ def toCellContents(inputCell):
     for pixY in range(cell.height):
         for pixX in range(cell.width):
             r,g,b = cell.getpixel((pixX, pixY))
+           # print(r, g, b)
             pixelColor = getColor(r, g, b)
-            print(r, g, b)
+          #  print(pixelColor)
             if pixelColor in trackColorCount:
                 trackColorCount[pixelColor] += 1
             else:
                 trackColorCount[pixelColor] = 1
+   # print(trackColorCount)
     return getCellType(trackColorCount)
 
 def getCellType(trackColorCount):
-    for color in trackColorCount:
-        count = trackColorCount[color]
-        if count >= 4000 and color in PIECE_COLORS:
-            return color[0].lower()
-        elif count >= 500 and color in PIECE_COLORS:
-            return color[0].upper()
-        elif color == 'tan' and count >= 300:
-            return 'p'
-        elif color == "brown" and count >= 400:
-            return 'w'
-    return "-"
+    for color in PIECE_COLORS:
+        if color in trackColorCount:
+            count = trackColorCount[color]
+            if count >= 4000:
+                return color[0].lower()
+            elif count >= 600 and "tan" not in trackColorCount:
+                return color[0].upper()
+    
+    if "tan" in trackColorCount:
+        if trackColorCount["tan"] > trackColorCount['brown']:
+            return "p"
+        else:
+            return "w"
+
+    return '-'
 
 def getColor(r, g, b):
     colorTolerance = 50
@@ -97,8 +113,7 @@ def getRowsCols(path):
     cols = path[path.find("x")+1:path.find(".")]
     return int(rows), int(cols)
     
-            
-def colorDistance(r, g, b, r1, b1, g1):
+def colorDistance(r, g, b, r1, g1, b1):
     return ((r-r1)**2 + (b-b1)**2 + (g-g1)**2)**(0.5)
 
 def loadPILImageLocal(path, resizeFactor):
@@ -184,12 +199,15 @@ def testSokobanLoader():
         if level != correctLevel:
             print(f'{file} is incorrect!')
             print('Correct result:')
-            print(correctLevel)
+            prettyPrint(correctLevel)
             print('Your result:')
-            print(level)
+            prettyPrint(level)
             assert(False)
         print(f'  {file} is correct')
     print('Passed!')
 
+def prettyPrint(L):
+    for row in L:
+        print(row)
 if __name__ == '__main__':
     testSokobanLoader()

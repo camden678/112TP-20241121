@@ -11,11 +11,13 @@ def onAppStart(app, path):
     app.levelCMUImage = CMUImage(app.levelPILImage)
     app.mouseCoords = (0, 0)
     app.mouseColor = (0, 0, 0)
+    app.background = None
 
 def redrawAll(app):
     drawLabel('Color Viewer', app.width/2, 20, size=16, bold=True)
     drawLabel(f'file = {app.path}', app.width/2, 35, size=14)
     drawLabel(str(app.mouseCoords) + str(app.mouseColor), app.width/2, 50, size = 14)
+   
     drawImage(app.levelCMUImage, app.width/2, (app.height/2)+25, align='center')
 
 def getPixel(app, x, y):
@@ -34,6 +36,8 @@ def onMouseMove(app, mouseX, mouseY):
     pix = getPixel(app, mouseX, mouseY)
     if pix != None:
         app.mouseColor = pix
+        r, g, b = pix
+        app.background = rgb(r, g, b)
 
 def loadPILImageLocal(path, resizeFactor):
     PILImageFull = Image.open(path)
