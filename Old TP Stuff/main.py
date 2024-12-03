@@ -121,8 +121,8 @@ def game_onMouseDrag(app, mouseX, mouseY):
             slider.updateSliderFromMouse(mouseX)
             constructAnimals(app)
 
-def game_onMouseRelease(app, mouseX, mouseY):
-    
+#def game_onMouseRelease(app, mouseX, mouseY):
+
 
 def game_onStep(app):
     for salmon in Salmon.getList():
