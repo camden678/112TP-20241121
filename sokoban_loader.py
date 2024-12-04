@@ -60,7 +60,7 @@ def loadLevel(path):
                 cellContents = toCellContents(cellImage)
                 resultList[i][j] = cellContents
                 if cellContents not in imageDict:
-                    imageDict[cellContents] = cellImage
+                    imageDict[cellContents] = CMUImage(cellImage)
                 left, right = left+dx, right+dx
             top, bottom = top + dy, bottom + dy
             left, right = 0, dx
