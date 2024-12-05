@@ -37,7 +37,10 @@ def loadActiveLevel(app):
 
 
 def redrawAll(app):
-    drawBoard(app)
+    if not app.isHardCoded:
+        drawBoard(app)
+    else:
+        drawHardBoard(app)
 
 def updatePlayerCoords(app):
     for i in range(app.rows):
@@ -50,6 +53,29 @@ def getPlayerCoords(app):
         for j in range(app.cols):
             if app.board[i][j] == "p":
                 return (i, j)
+
+def drawHardBoard(app):
+    leftX, leftY = 0, 75
+    
+    for i in range(len(app.board)):
+        for j in range(len(app.board[i])):
+            element = app.board[i][j]
+            getDrawFunc(app, element)
+            leftX += app.cellSize
+        leftX = 0
+        leftY += app.cellSize
+
+def getDrawFunc(app, element, x, y):
+    if element == "p":
+        return drawCircle(x, y, 50, fill = "black")
+    elif element == "w":
+        return drawRect(x, y, 90, 90, fill = "burlyWood")
+    if element.isupper():
+        colors = { "r":'red', "g": 'green', "b":'blue', "v":'violet', "c":'cyan' }
+        return drawStar(x, y, 50, 5, fill = colors[element])
+    elif element.islower():
+
+    
 
 def drawBoard(app):
     leftX, leftY = 0, 75
@@ -90,6 +116,7 @@ def onKeyPress(app, key):
     if key.isdigit() and int(key) in [1, 2, 3, 4]:
         app.activeLevel = int(key)
         loadActiveLevel(app)
+        app.background = "white"
     if key in ['right','left','up','down']:
         if key == "right":
             drow, dcol = 0, 1
