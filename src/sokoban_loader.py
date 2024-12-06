@@ -1,7 +1,15 @@
 # sokoban_loader.py
+# Camden Johnson
+# AndrewID: camdenj
 
-# level files are lightly-edited screenshots from here:
-# https://www.sokobanonline.com/play/community/bjertrup/sokomind-plus
+#The following code was taken from Microsoft Copilot.  I used it to access the graphpics package from the parent directory.
+import sys
+import os
+# Get the parent directory
+parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+# Add the parent directory to sys.path
+sys.path.insert(0, parent_dir)
+#All further code is my own.
 
 from cmu_graphics import CMUImage
 from PIL import Image
@@ -24,19 +32,23 @@ COLORS = {
 PIECE_COLORS = [ 'red', 'green', 'blue', 'violet', 'cyan' ]
 
 def readPickleFile(path):
+    path = "../pickles/"+path[3:]
     with open(path, 'rb') as f:
         return pickle.load(f)
 
 def writePickleFile(path, contents):
+    path = "../pickles/"+path[3:]
     with open(path, 'wb') as f:
         pickle.dump(contents, f)
 
 def loadLevel(path):
-    # first return a hardcoded level for testing purposes
+    path = "../" + path
+    #First return a hardcoded level for testing purposes
     if path == None:
         return loadHardcodedLevel()
-    
+    #So as to not overwrite the exiting files
     picklePath = path + ".pickle"
+    #This try/except is a workaround to make the reading/writing of pickles easy!
     try:
         return readPickleFile(picklePath)
     except FileNotFoundError:
@@ -45,60 +57,66 @@ def loadLevel(path):
 
         width, height = image.width, image.height
         dx, dy = width/cols, height/rows
-
-        resultList =  [["" for _ in range(cols)] for _ in range(rows)]
+        #Creates a blank list of rows, cols
+        resultList =  [["" for i in range(cols)] for j in range(rows)]
+        #Creates the iamge dictionary
         imageDict = dict()
 
         left, top = 0, 0
         bottom, right = dy, dx
-        #print(image.width, image.height, rows, cols, dx, dy)
+        #Crops the cells and generates the list with the appropriate cell types
         for i in range(rows):
             for j in range(cols):
-                #print("CELL: ", i, j)
-                #print(left, top, right, bottom)
                 cellImage = image.crop((left+3, top+3, right-3, bottom-3))
                 cellContents = toCellContents(cellImage)
                 resultList[i][j] = cellContents
+                #Updates the imageDict with new iamges
                 if cellContents not in imageDict:
                     imageDict[cellContents] = CMUImage(cellImage)
                 left, right = left+dx, right+dx
             top, bottom = top + dy, bottom + dy
             left, right = 0, dx
+        #Generates tuple to send to the sokoban_player
         result = (resultList, imageDict)
+        #Stores it!
         writePickleFile(picklePath, result) 
         return result
 
 def toCellContents(inputCell):
     cell=inputCell.convert('RGB')
     trackColorCount = dict()
+    #Counts the pixels of each color in a cell
     for pixY in range(cell.height):
         for pixX in range(cell.width):
             r,g,b = cell.getpixel((pixX, pixY))
-           # print(r, g, b)
             pixelColor = getColor(r, g, b)
-          #  print(pixelColor)
             if pixelColor in trackColorCount:
                 trackColorCount[pixelColor] += 1
             else:
                 trackColorCount[pixelColor] = 1
-   # print(trackColorCount)
+    #Returns this dictionary converted to the cell type
     return getCellType(trackColorCount)
 
 def getCellType(trackColorCount):
+    #First checks the piece colors to see if it is a piece
     for color in PIECE_COLORS:
         if color in trackColorCount:
             count = trackColorCount[color]
+            #For the blocks, the tolerance is 4000 pixels
             if count >= 4000:
                 return color[0].lower()
+            #For the targets, the tolerance is 600
             elif count >= 600 and "tan" not in trackColorCount:
                 return color[0].upper()
-    
+    #If it has any Tan
     if "tan" in trackColorCount:
+        #If there's more Tan than Brown, it's a player. 
         if trackColorCount["tan"] > trackColorCount['brown']:
             return "p"
+        #Otherwise, its a wall
         else:
             return "w"
-
+    #If nothing else applies, its empty
     return '-'
 
 def getColor(r, g, b):
@@ -107,10 +125,10 @@ def getColor(r, g, b):
         r1, g1, b1, = COLORS[color]
         if colorDistance(r, g, b, r1, g1, b1) <=colorTolerance:
             return color
-
+#returns the number of rows and cols from the path
 def getRowsCols(path):
     rows = path[path.find("-")+1:path.find("x")]
-    cols = path[path.find("x")+1:path.find(".")]
+    cols = path[path.find("x")+1:path.find("p")-1]
     return int(rows), int(cols)
     
 def colorDistance(r, g, b, r1, g1, b1):

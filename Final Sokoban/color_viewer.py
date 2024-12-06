@@ -1,5 +1,6 @@
 # color_viewer.py
-# Camden JOhnson
+# Camden Johnson
+# AndrewID: camdenj
 from cmu_graphics import *
 from PIL import Image
 
